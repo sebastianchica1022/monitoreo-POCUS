@@ -100,6 +100,27 @@ h1{
   line-height: 1.35;
   max-width: 46ch;
 }
+.case-bar{
+  display:flex;
+  align-items:center;
+  gap: 8px;
+  margin-top: 10px;
+}
+#caseSelector{
+  flex:1;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  font-family: var(--font-display);
+}
+.icon-btn{
+  padding: 7px 10px;
+  line-height: 1;
+  font-size: 14px;
+}
 .case-meta{
   display:flex;
   align-items:center;

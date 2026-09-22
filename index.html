@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A1414">
+<title>POCUS Hemodinámico</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="scan-sweep" aria-hidden="true"></div>
+
+<header class="app-header">
+  <div class="header-top">
+    <div class="brand">
+      <span class="brand-mark">◔</span>
+      <div>
+        <h1>POCUS Hemodinámico</h1>
+        <p class="subtitle">Evaluación cardiopulmonar con ultrasonido a la cabecera del paciente</p>
+      </div>
+    </div>
+    <button id="newCaseBtn" class="ghost-btn" title="Crear un caso nuevo, sin borrar los demás">+ Caso</button>
+  </div>
+  <div class="case-bar">
+    <select id="caseSelector" aria-label="Caso guardado"></select>
+    <button id="deleteCaseBtn" class="ghost-btn icon-btn" title="Eliminar este caso">🗑</button>
+  </div>
+  <div class="case-meta">
+    <input type="text" id="patientTag" placeholder="Identificador / cama (opcional)" autocomplete="off">
+    <span id="savedIndicator" class="saved-indicator">guardado</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- PERFIL HEMODINÁMICO (resultado en vivo) -->
+  <section class="profile-readout" id="profileReadout">
+    <div class="readout-label">Perfil hemodinámico</div>
+    <div class="readout-main" id="profileMain">Sin datos suficientes</div>
+    <div class="readout-flags" id="profileFlags"></div>
+    <ul class="readout-reasons" id="profileReasons"></ul>
+  </section>
+
+  <!-- DERRAME PERICÁRDICO -->
+  <details class="card" open>
+    <summary><span class="idx">01</span> Derrame pericárdico <span class="badge" id="badge-derrame"></span></summary>
+    <div class="card-body">
+      <label class="check-row">
+        <input type="checkbox" id="derrame_presente">
+        <span>Derrame pericárdico presente</span>
+      </label>
+      <div class="field-grid" id="derrame_detalle" hidden>
+        <label>Severidad
+          <select id="derrame_severidad">
+            <option value="">—</option>
+            <option value="leve">Leve &lt;10mm</option>
+            <option value="moderado">Moderado 10–20mm</option>
+            <option value="grave">Grave &gt;20mm</option>
+          </select>
+        </label>
+        <label class="check-row full">
+          <input type="checkbox" id="derrame_compromiso">
+          <span>Compromiso hemodinámico (colapso diastólico de VD / AD, swinging heart, variación respiratoria mitral &gt;25%)</span>
+        </label>
+      </div>
+    </div>
+  </details>
+
+  <!-- VENA CAVA INFERIOR -->
+  <details class="card" open>
+    <summary><span class="idx">02</span> Vena cava inferior <span class="badge" id="badge-vci"></span></summary>
+    <div class="card-body">
+      <div class="field-grid">
+        <label>Diámetro menor (cm)
+          <input type="text" class="numfield" inputmode="decimal" step="0.1" min="0" id="vci_menor">
+        </label>
+        <label>Diámetro mayor (cm)
+          <input type="text" class="numfield" inputmode="decimal" step="0.1" min="0" id="vci_mayor">
+        </label>
+        <label>Colapsabilidad (%)
+          <input type="text" class="numfield" inputmode="numeric" step="1" min="0" max="100" id="vci_colapso">
+        </label>
+        <label>Distensibilidad (%)
+          <input type="text" class="numfield" inputmode="numeric" step="1" min="0" max="100" id="vci_distension">
+        </label>
+        <label>Contexto ventilatorio
+          <select id="vci_contexto">
+            <option value="espontanea">Respiración espontánea</option>
+            <option value="mecanica">Ventilación mecánica</option>
+          </select>
+        </label>
+      </div>
+      <p class="hint" id="vci_hint"></p>
+    </div>
+  </details>
+
+  <!-- FUNCIÓN VI -->
+  <details class="card" open>
+    <summary><span class="idx">03</span> Función VI <span class="badge" id="badge-funcionvi"></span></summary>
+    <div class="card-body">
+      <div class="field-grid">
+        <label>Punto E — EPSS (mm)
+          <input type="text" class="numfield" inputmode="decimal" step="0.5" min="0" id="vi_puntoe">
+        </label>
+        <label>MAPSE (mm)
+          <input type="text" class="numfield" inputmode="decimal" step="0.5" min="0" id="vi_mapse">
+        </label>
+        <label>S' (cm/s)
+          <input type="text" class="numfield" inputmode="decimal" step="0.5" min="0" id="vi_s">
+        </label>
+        <label>FEVI (%)
+          <input type="text" class="numfield" inputmode="numeric" step="1" min="0" max="100" id="vi_fevi">
+        </label>
+      </div>
+    </div>
+  </details>
+
+  <!-- VOLUMEN SISTÓLICO -->
+  <details class="card">
+    <summary><span class="idx">04</span> Volumen sistólico <span class="badge" id="badge-volsist"></span></summary>
+    <div class="card-body">
+      <div class="field-grid">
+        <label>Diámetro TSVI (cm)
+          <input type="text" class="numfield" inputmode="decimal" step="0.1" min="0" id="vs_diametro">
+        </label>
+        <label>VTI TSVI (cm)
+          <input type="text" class="numfield" inputmode="decimal" step="0.1" min="0" id="vs_vti">
+        </label>
+        <label>Frecuencia cardiaca (lpm)
+          <input type="text" class="numfield" inputmode="numeric" step="1" min="0" id="vs_fc">
+        </label>
+        <label>Gasto cardiaco (L/min)
+          <input type="text" class="numfield" inputmode="decimal" step="0.1" min="0" id="vs_gc" placeholder="auto o manual">
+        </label>
+        <label class="full">Δ VTI con reto de volumen (%)
+          <input type="text" class="numfield" inputmode="numeric" step="1" id="vs_deltavti" placeholder="≥12.5% sugiere respuesta a volumen">
+        </label>
+      </div>
+      <p class="hint" id="vs_hint"></p>
+    </div>
+  </details>
+
+  <!-- ALTERACIONES SEGMENTARIAS -->
+  <details class="card">
+    <summary><span class="idx">05</span> Alteraciones segmentarias de contractilidad <span class="badge" id="badge-segmentaria"></span></summary>
+    <div class="card-body">
+      <div class="field-grid segments">
+        <label>Anterior <select id="seg_anterior"><option value="normal">Normal</option><option value="hipocinesia">Hipocinesia</option><option value="acinesia">Acinesia</option><option value="discinesia">Discinesia</option></select></label>
+        <label>Lateral <select id="seg_lateral"><option value="normal">Normal</option><option value="hipocinesia">Hipocinesia</option><option value="acinesia">Acinesia</option><option value="discinesia">Discinesia</option></select></label>
+        <label>Inferior <select id="seg_inferior"><option value="normal">Normal</option><option value="hipocinesia">Hipocinesia</option><option value="acinesia">Acinesia</option><option value="discinesia">Discinesia</option></select></label>
+        <label>Septal <select id="seg_septal"><option value="normal">Normal</option><option value="hipocinesia">Hipocinesia</option><option value="acinesia">Acinesia</option><option value="discinesia">Discinesia</option></select></label>
+        <label>Apical <select id="seg_apical"><option value="normal">Normal</option><option value="hipocinesia">Hipocinesia</option><option value="acinesia">Acinesia</option><option value="discinesia">Discinesia</option></select></label>
+      </div>
+    </div>
+  </details>
+
+  <!-- FUNCIÓN DIASTÓLICA -->
+  <details class="card">
+    <summary><span class="idx">06</span> Función diastólica <span class="badge" id="badge-diastolica"></span></summary>
+    <div class="card-body">
+      <div class="field-grid">
+        <label>E (cm/s)
+          <input type="text" class="numfield" inputmode="numeric" step="1" min="0" id="dd_e">
+        </label>
+        <label>A (cm/s)
+          <input type="text" class="numfield" inputmode="numeric" step="1" min="0" id="dd_a">
+        </label>
+        <label>e' (cm/s)
+          <input type="text" class="numfield" inputmode="decimal" step="0.5" min="0" id="dd_ep">
+        </label>
+        <label>a' (cm/s)
+          <input type="text" class="numfield" inputmode="decimal" step="0.5" min="0" id="dd_ap">
+        </label>
+      </div>
+      <p class="hint" id="dd_hint"></p>
+    </div>
+  </details>
+
+  <!-- VENTRÍCULO DERECHO -->
+  <details class="card">
+    <summary><span class="idx">07</span> Ventrículo derecho <span class="badge" id="badge-vd"></span></summary>
+    <div class="card-body">
+      <div class="field-grid">
+        <label>VD/VI (ratio)
+          <input type="text" class="numfield" inputmode="decimal" step="0.1" min="0" id="vd_ratio">
+        </label>
+        <label>Grosor pared (mm)
+          <input type="text" class="numfield" inputmode="decimal" step="0.5" min="0" id="vd_grosor">
+        </label>
+        <label>Morfología
+          <select id="vd_morfologia">
+            <option value="normal">Normal</option>
+            <option value="dshape">Signo D (aplanamiento septal)</option>
+            <option value="dilatado">Dilatado</option>
+          </select>
+        </label>
+        <label>TAPSE (mm)
+          <input type="text" class="numfield" inputmode="numeric" step="1" min="0" id="vd_tapse">
+        </label>
+      </div>
+    </div>
+  </details>
+
+  <!-- SIGNOS DE SOBRECARGA DE PRESIÓN DEL VD -->
+  <details class="card">
+    <summary><span class="idx">08</span> Signos de sobrecarga de presión del VD <span class="badge" id="badge-sobrecarga"></span></summary>
+    <div class="card-body">
+      <label class="check-row">
+        <input type="checkbox" id="sc_signod">
+        <span>Signo D / McConnell</span>
+      </label>
+      <div class="field-grid">
+        <label>Índice de excentricidad
+          <input type="text" class="numfield" inputmode="decimal" step="0.1" min="0" id="sc_excentricidad">
+        </label>
+        <label>Vmáx TRV (m/s)
+          <input type="text" class="numfield" inputmode="decimal" step="0.1" min="0" id="sc_vmax">
+        </label>
+        <label>PVC estimada (mmHg)
+          <input type="text" class="numfield" inputmode="numeric" step="1" min="0" id="sc_pvc" placeholder="por VCI">
+        </label>
+        <label>PSAP estimada (mmHg)
+          <input type="text" class="numfield" inputmode="numeric" step="1" min="0" id="sc_psap" placeholder="auto o manual">
+        </label>
+        <label class="full">VTI TSVD (cm)
+          <input type="text" class="numfield" inputmode="decimal" step="0.1" min="0" id="sc_vtitsvd" placeholder="&lt;9.5cm sugiere disfunción de VD">
+        </label>
+      </div>
+      <p class="hint" id="sc_hint"></p>
+    </div>
+  </details>
+
+  <!-- CHOQUE POR TEP -->
+  <details class="card">
+    <summary><span class="idx">09</span> Choque por TEP <span class="badge" id="badge-tep"></span></summary>
+    <div class="card-body">
+      <label class="check-row">
+        <input type="checkbox" id="tep_trombo">
+        <span>Trombo evidente (cavidades derechas / arteria pulmonar)</span>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" id="tep_vcpletorica">
+        <span>Vena cava pletórica</span>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" id="tep_tvp">
+        <span>TVP femoral (compresión venosa positiva)</span>
+      </label>
+    </div>
+  </details>
+
+  <!-- DOPPLER COLOR VÁLVULAS -->
+  <details class="card">
+    <summary><span class="idx">10</span> Doppler color válvulas <span class="badge" id="badge-doppler"></span></summary>
+    <div class="card-body">
+      <div class="field-grid">
+        <label>Mitral
+          <select id="dop_mitral"><option value="normal">Normal</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option></select>
+        </label>
+        <label>Tricuspídea
+          <select id="dop_tricuspidea"><option value="normal">Normal</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option></select>
+        </label>
+        <label>Aórtica
+          <select id="dop_aortica"><option value="normal">Normal</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option></select>
+        </label>
+      </div>
+    </div>
+  </details>
+
+  <!-- PULMONES -->
+  <details class="card">
+    <summary><span class="idx">11</span> Pulmones <span class="badge" id="badge-pulmones"></span></summary>
+    <div class="card-body">
+      <div class="lung-grid">
+        <div class="lung-col">
+          <h3>Hemitórax izquierdo</h3>
+          <label class="check-row"><input type="checkbox" id="pul_izq_deslizamiento" checked><span>Deslizamiento pleural presente</span></label>
+          <label>Patrón
+            <select id="pul_izq_patron">
+              <option value="A">Patrón A</option>
+              <option value="Bfocal">Patrón B focal</option>
+              <option value="Bdifuso">Patrón B difuso</option>
+              <option value="consolidacion">Consolidación / broncograma</option>
+            </select>
+          </label>
+          <label>Derrame
+            <select id="pul_izq_derrame"><option value="no">Ausente</option><option value="leve">Leve</option><option value="moderado">Moderado</option><option value="severo">Severo</option></select>
+          </label>
+        </div>
+        <div class="lung-col">
+          <h3>Hemitórax derecho</h3>
+          <label class="check-row"><input type="checkbox" id="pul_der_deslizamiento" checked><span>Deslizamiento pleural presente</span></label>
+          <label>Patrón
+            <select id="pul_der_patron">
+              <option value="A">Patrón A</option>
+              <option value="Bfocal">Patrón B focal</option>
+              <option value="Bdifuso">Patrón B difuso</option>
+              <option value="consolidacion">Consolidación / broncograma</option>
+            </select>
+          </label>
+          <label>Derrame
+            <select id="pul_der_derrame"><option value="no">Ausente</option><option value="leve">Leve</option><option value="moderado">Moderado</option><option value="severo">Severo</option></select>
+          </label>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <!-- RESUMEN -->
+  <section class="card summary-card">
+    <div class="summary-header">
+      <h2>Resumen diligenciado</h2>
+      <button id="copySummaryBtn" class="primary-btn">Copiar resumen</button>
+    </div>
+    <pre id="summaryText" class="summary-text">Diligencia los campos para generar el resumen.</pre>
+  </section>
+
+  <p class="disclaimer">Herramienta de apoyo para organizar hallazgos de POCUS a la cabecera. El perfil hemodinámico sugerido es una interpretación automática basada en reglas y debe correlacionarse siempre con la clínica y el juicio médico.</p>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
