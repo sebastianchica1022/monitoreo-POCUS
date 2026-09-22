@@ -23,7 +23,8 @@ function getVal(id) {
   if (el.type === "checkbox") return el.checked;
   if (el.classList && el.classList.contains("numfield")) {
     if (el.value === "" || el.value === null) return null;
-    const normalized = String(el.value).trim().replace(",", ".");
+    // acepta coma o punto como separador decimal, tal como el usuario lo haya escrito
+    const normalized = String(el.value).trim().replace(/,/g, ".");
     const num = parseFloat(normalized);
     return isNaN(num) ? null : num;
   }
@@ -34,17 +35,6 @@ function setVal(id, v) {
   if (!el) return;
   if (el.type === "checkbox") { el.checked = !!v; return; }
   el.value = (v === null || v === undefined) ? "" : v;
-}
-
-// Convierte automáticamente la coma en punto (o viceversa a la vista) mientras
-// el usuario escribe, para que el teclado numérico del celular funcione aunque
-// no tenga tecla de punto — y para que quede un formato consistente.
-function normalizeNumericInput(el) {
-  if (!el.classList || !el.classList.contains("numfield")) return;
-  if (el.value.indexOf(",") === -1) return;
-  const cursor = el.selectionStart;
-  el.value = el.value.replace(/,/g, ".");
-  try { el.setSelectionRange(cursor, cursor); } catch (e) { /* algunos navegadores móviles no lo soportan */ }
 }
 function has(v) { return v !== null && v !== undefined && v !== ""; }
 
@@ -491,7 +481,6 @@ function render() {
 
 // ---------- Eventos ----------
 document.addEventListener("input", (e) => {
-  normalizeNumericInput(e.target);
   if (FIELD_IDS.includes(e.target.id)) {
     if (e.target.id === "derrame_presente") toggleDerrameDetalle();
     persistCurrentCase();
